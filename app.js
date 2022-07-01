@@ -10,6 +10,9 @@ const { ENV_PORT, DB_URL } = require('./utils/config');
 const routes = require('./routes');
 
 const app = express();
+
+app.use(requestLogger);
+app.use(limiter);
 app.use(helmet());
 app.use(express.json());
 app.use(cors());
@@ -19,8 +22,6 @@ app.get('/crash-test', () => {
   }, 0);
 });
 
-app.use(requestLogger);
-app.use(limiter);
 app.use('/', routes);
 app.use(errorLogger);
 app.use(errors());
