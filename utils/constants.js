@@ -10,7 +10,8 @@ const errorMessages = {
   authorizationErrorMessageLogin: 'Неправильный e-mail или пароль',
   validationEmailErrorMessage: 'Некорректый адрес почты',
   notFoundOnSiteErrorMessage: 'Запрашиваемая страница не существует',
-
+  serverErrorMessage: 'На сервере произошла ошибка',
+  serverDeadErrorMessage: 'Сервер сейчас упадёт',
 };
 
 module.exports = { errorMessages };

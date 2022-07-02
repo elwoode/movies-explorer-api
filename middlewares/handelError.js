@@ -9,7 +9,7 @@ module.exports = (err, _, res, next) => {
   } else {
     res.status(statusCode).send({
       message: statusCode === 500
-        ? 'На сервере произошла ошибка'
+        ? errorMessages.serverErrorMessage
         : message,
     });
   }

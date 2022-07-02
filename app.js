@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const errorHandler = require('./middlewares/handelError');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const limiter = require('./middlewares/rate-limiter');
+const { errorMessages } = require('./utils/constants');
 const { ENV_PORT, DB_URL } = require('./utils/config');
 const routes = require('./routes');
 
@@ -18,7 +19,7 @@ app.use(express.json());
 app.use(cors());
 app.get('/crash-test', () => {
   setTimeout(() => {
-    throw new Error('Сервер сейчас упадёт');
+    throw new Error(errorMessages.serverDeadErrorMessage);
   }, 0);
 });
 
