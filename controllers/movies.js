@@ -16,44 +16,15 @@ const getMovies = (req, res, next) => {
 };
 
 const createMovie = (req, res, next) => {
-  const {
-    country, director, duration, year, description,
-    image, trailerLink, nameRU, nameEN, thumbnail, movieId,
-  } = req.body;
   const owner = req.user._id;
-  Movie.create({
-    country,
-    director,
-    duration,
-    year,
-    description,
-    image,
-    trailerLink,
-    nameRU,
-    nameEN,
-    thumbnail,
-    movieId,
-    owner,
-  })
-    .then((movie) => res.status(200).send({
-      _id: movie._id,
-      country: movie.country,
-      director: movie.director,
-      duration: movie.duration,
-      year: movie.year,
-      description: movie.description,
-      image: movie.image,
-      trailerLink: movie.trailerLink,
-      nameRU: movie.nameRU,
-      nameEN: movie.nameEN,
-      thumbnail: movie.thumbnail,
-      movieId: movie.movieId,
-    }))
+
+  Movie.create({ owner, ...req.body })
+    .then((movie) => res.send(movie))
     .catch((err) => {
       if (err.name === 'ValidationError') {
         throw new BadRequest(errorMessages.validationErrorMessage);
       }
-      return next(err);
+      next(err);
     })
     .catch(next);
 };
