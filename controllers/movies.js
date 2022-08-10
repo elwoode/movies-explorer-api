@@ -1,33 +1,24 @@
-const Movie = require('../models/movies');
-const { ServerError } = require('../Errors/ServerError');
-const { NotFoundErr } = require('../Errors/NotFoundErr');
-const { BadReqestError } = require('../Errors/BadReqestError');
-const { ForbiddenError } = require('../Errors/ForbiddenError');
-const { errMsg } = require('../utils/constants');
+const Movie = require('../models/movie');
+const BadRequest = require('../errors/BadRequest');
+const NotFound = require('../errors/NotFoundError');
+const ForbiddenError = require('../errors/ForbiddenError');
+const { errorMessages } = require('../utils/constants');
 
-const getMovies = (_, res, next) => {
-  Movie.find({})
+const getMovies = (req, res, next) => {
+  Movie.find({ owner: req.user._id })
     .then((movies) => {
-      res.status(200).send(movies);
+      if (!movies) {
+        throw new NotFound(errorMessages.notFoundErrorDBMessage);
+      }
+      res.send(movies);
     })
-    .catch(() => {
-      next(new ServerError(errMsg.serverErr));
-    });
+    .catch(next);
 };
 
 const createMovie = (req, res, next) => {
   const {
-    country,
-    director,
-    duration,
-    year,
-    description,
-    image,
-    trailerLink,
-    thumbnail,
-    movieId,
-    nameRU,
-    nameEN,
+    country, director, duration, year, description,
+    image, trailerLink, nameRU, nameEN, thumbnail, movieId,
   } = req.body;
   const owner = req.user._id;
   Movie.create({
@@ -38,43 +29,52 @@ const createMovie = (req, res, next) => {
     description,
     image,
     trailerLink,
-    thumbnail,
-    owner,
-    movieId,
     nameRU,
     nameEN,
+    thumbnail,
+    movieId,
+    owner,
   })
-    .then((movie) => {
-      res.status(201).send(movie);
-    })
+    .then((movie) => res.status(200).send({
+      _id: movie._id,
+      country: movie.country,
+      director: movie.director,
+      duration: movie.duration,
+      year: movie.year,
+      description: movie.description,
+      image: movie.image,
+      trailerLink: movie.trailerLink,
+      nameRU: movie.nameRU,
+      nameEN: movie.nameEN,
+      thumbnail: movie.thumbnail,
+      movieId: movie.movieId,
+    }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        const fields = Object.keys(err.errors).join(' and ');
-        return next(new BadReqestError(`Field(s) ${fields} are not correct`));
+        throw new BadRequest(errorMessages.validationErrorMessage);
       }
-      return next(new ServerError(errMsg.serverErr));
-    });
+      return next(err);
+    })
+    .catch(next);
 };
 
 const deleteMovie = (req, res, next) => {
-  const id = req.params._id;
+  const userId = req.user._id;
+  const { movieId } = req.params;
 
-  Movie.findById(id)
-    .then((movie) => {
-      if (!movie) {
-        return next(new NotFoundErr(errMsg.movieNotFoundErr));
-      }
-      if (movie.owner.toString() !== req.user._id) {
-        throw new ForbiddenError(errMsg.forbErrMsg);
-      }
-      return movie.remove().then(() => res.status(200).send(movie));
+  Movie.findById(movieId)
+    .orFail(() => {
+      throw new NotFound(errorMessages.movieNotFoundErrorMessage);
     })
-    .catch((err) => {
-      if (err.kind === 'ObjectId') {
-        return next(new BadReqestError(errMsg.movieIdNotCorrErr));
+    .then((movie) => {
+      if (movie.owner.toString() === userId) {
+        return Movie.findByIdAndRemove(movieId)
+          .then((deletedMovie) => res.send(deletedMovie))
+          .catch(next);
       }
-      return next(err);
-    });
+      throw new ForbiddenError(errorMessages.forbiddenErrorMessage);
+    })
+    .catch(next);
 };
 
 module.exports = {

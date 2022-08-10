@@ -1,16 +1,17 @@
-const errMsg = {
-  userNotFoundErr: 'User not found',
-  serverErr: 'Server error 500',
-  badReqestErr: 'Server error 400',
-  badUrlMsg: 'не корректный url',
-  notFoundErrDBMsg: 'Object not found 404',
-  unauthorizedErrMsg: 'Необходима авторизация',
-  authorizationErrMsg: 'Неправильные почта или пароль',
-  emailBusyErr: 'Этот email уже занят',
-  movieIdNotCorrErr: 'Movie Id is not correct',
-  movieNotFoundErr: 'Movie not found',
-  pageNotFoundErr: 'Page not found',
-  forbErrMsg: '403 Forbidden',
+const errorMessages = {
+  validationErrorMessage: 'Переданы некорректные данные',
+  notFoundUserErrorMessage: 'Пользователь по указанному _id не найден',
+  emailConflictErrorMessage: 'Пользователь с таким e-mail уже существует',
+  forbiddenErrorMessage: 'В доступе отказано',
+  notFoundErrorDBMessage: 'Данные не найдены!',
+  movieNotFoundErrorMessage: 'Фильм с указанным _id не найден',
+  authorizationErrorMessageJWT: 'Необходима авторизация',
+  badRequestErrorMessage: 'Некорректный адрес URL',
+  authorizationErrorMessageLogin: 'Неправильный e-mail или пароль',
+  validationEmailErrorMessage: 'Некорректый адрес почты',
+  notFoundOnSiteErrorMessage: 'Запрашиваемая страница не существует',
+  serverErrorMessage: 'На сервере произошла ошибка',
+  serverDeadErrorMessage: 'Сервер сейчас упадёт',
 };
 
-module.exports = { errMsg };
+module.exports = { errorMessages };

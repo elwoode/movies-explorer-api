@@ -1,105 +1,79 @@
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { JWT_KEY } = require('../utils/config');
-const User = require('../models/users');
-
-const { ServerError } = require('../Errors/ServerError');
-const { NotFoundErr } = require('../Errors/NotFoundErr');
-const { BadReqestError } = require('../Errors/BadReqestError');
-const { AuthError } = require('../Errors/AuthError');
-const { ConflictingError } = require('../Errors/ConflictingError');
-const { errMsg } = require('../utils/constants');
+const User = require('../models/user');
+const BadRequest = require('../errors/BadRequest');
+const NotFound = require('../errors/NotFoundError');
+const ConflictError = require('../errors/ConflictError');
+const { errorMessages } = require('../utils/constants');
 
 const getUser = (req, res, next) => {
-  User.findById(req.user._id)
-    .then((user) => {
-      if (!user) {
-        next(new NotFoundErr(errMsg.userNotFoundErr));
-      }
-      res.status(200).send({ user });
+  const userId = req.user._id;
+
+  User.findById(userId)
+    .orFail(() => {
+      throw new NotFound(errorMessages.notFoundUserErrorMessage);
     })
-    .catch((err) => {
-      if (err.message === 'NotFound') {
-        next(new NotFoundErr(errMsg.notFoundErrDBMsg));
-      } else {
-        next(new ServerError(errMsg.serverErr));
-      }
-    });
+    .then((user) => res.send(user))
+    .catch(next);
 };
 
-const updateUserProf = (req, res, next) => {
+const updateUser = (req, res, next) => {
   const { name, email } = req.body;
-  const id = req.user._id;
-  User.findByIdAndUpdate(
-    id,
-    {
-      name,
-      email,
-    },
-    {
-      new: true,
-      runValidators: true,
-    },
-  )
-    .then((userInfo) => {
-      if (!userInfo) {
-        return next(new NotFoundErr(errMsg.userNotFoundErr));
-      }
-      return res.status(200).send(userInfo);
+  const userId = req.user._id;
+
+  User.findByIdAndUpdate(userId, { name, email }, { new: true, runValidators: true })
+    .orFail(() => {
+      throw new NotFound(errorMessages.notFoundUserErrorMessage);
     })
+    .then((user) => res.send(user))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        const fields = Object.keys(err.errors).join(' and ');
-        return next(new BadReqestError(`Field(s) ${fields} are not correct`));
+      if (err.name === 'ValidationError' || err.name === 'CastError') {
+        throw new BadRequest(errorMessages.validationErrorMessage);
       }
-      return next(new ConflictingError(errMsg.emailBusyErr));
-    });
+      if (err.code === 11000) {
+        throw new ConflictError(errorMessages.emailConflictErrorMessage);
+      }
+      next(err);
+    })
+    .catch(next);
 };
 
 const createUser = (req, res, next) => {
-  const {
-    name,
-    email,
-    password,
-  } = req.body;
+  const { name, email, password } = req.body;
+
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
-      name,
-      email,
-      password: hash,
+      name, email, password: hash,
     }))
-    .then((user) => {
-      res.status(201).send({
-        name: user.name,
-        email: user.email,
-      });
-    })
+    .then((({ _id }) => User.findById(_id)))
+    .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        const fields = Object.keys(err.errors).join(' and ');
-        next(new BadReqestError(`Field(s) ${fields} are not correct`));
-      } if (err.code === 11000) {
-        return next(new ConflictingError(errMsg.emailBusyErr));
+        throw new BadRequest(errorMessages.validationErrorMessage);
       }
-      return next(err);
-    });
+      if (err.code === 11000) {
+        throw new ConflictError(errorMessages.emailConflictErrorMessage);
+      }
+      next(err);
+    })
+    .catch(next);
 };
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
+
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_KEY, { expiresIn: '7d' });
       res.send({ token });
     })
-    .catch(() => {
-      next(new AuthError(errMsg.authorizationErrMsg));
-    });
+    .catch(next);
 };
 
 module.exports = {
   getUser,
-  updateUserProf,
+  updateUser,
   createUser,
   login,
 };
